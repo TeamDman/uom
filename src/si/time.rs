@@ -3,6 +3,9 @@
 use crate::lib::time::Duration;
 use crate::num::{FromPrimitive, ToPrimitive, Zero};
 
+#[cfg(feature = "human")]
+use humantime;
+
 quantity! {
     /// Time (base unit second, s).
     quantity: Time; "time";
@@ -127,6 +130,105 @@ where
                 Ok(Time::<U, V>::new::<second>(secs) + Time::<U, V>::new::<nanosecond>(nanos))
             }
             _ => Err(TryFromError::Overflow),
+        }
+    }
+}
+
+/// Extension trait for human-readable time formatting.
+#[cfg(feature = "human")]
+impl<U, V> Time<U, V>
+where
+    U: crate::si::Units<V> + ?Sized,
+    V: crate::num::Num + crate::Conversion<V> + ToPrimitive + PartialOrd + Copy + crate::num::Signed,
+    second: crate::Conversion<V, T = V::T>,
+    nanosecond: crate::Conversion<V, T = V::T>,
+{
+    /// Get a human-readable representation of the time duration with full precision.
+    ///
+    /// This method converts the time to a standard library `Duration` and then
+    /// formats it using the `humantime` crate for human-readable output with 
+    /// nanosecond precision.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uom::si::f64::Time;
+    /// use uom::si::time::{second, minute, hour, millisecond};
+    ///
+    /// let t1 = Time::new::<second>(45.0);
+    /// let t2 = Time::new::<minute>(2.5);
+    /// let t3 = Time::new::<millisecond>(1500.0);
+    ///
+    /// println!("{}", t1.get_human_nanos()); // "45s"
+    /// println!("{}", t2.get_human_nanos()); // "2m 30s"
+    /// println!("{}", t3.get_human_nanos()); // "1s 499ms 999us 999ns"
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the human-readable time representation with full precision,
+    /// or an error message if the conversion fails (e.g., for negative durations or overflow).
+    pub fn get_human_nanos(&self) -> String {
+        match Duration::try_from(*self) {
+            Ok(duration) => humantime::format_duration(duration).to_string(),
+            Err(TryFromError::NegativeDuration) => {
+                // For negative durations, format as negative of the absolute value
+                match Duration::try_from(self.abs()) {
+                    Ok(duration) => format!("-{}", humantime::format_duration(duration)),
+                    Err(_) => "invalid duration".to_string(),
+                }
+            }
+            Err(TryFromError::Overflow) => "duration too large".to_string(),
+        }
+    }
+
+    /// Get a human-readable representation of the time duration truncated to milliseconds.
+    ///
+    /// This method converts the time to a standard library `Duration`, truncates it to 
+    /// millisecond precision, and then formats it using the `humantime` crate for 
+    /// human-readable output.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uom::si::f64::Time;
+    /// use uom::si::time::{second, minute, hour, millisecond};
+    ///
+    /// let t1 = Time::new::<second>(45.0);
+    /// let t2 = Time::new::<minute>(2.5);
+    /// let t3 = Time::new::<millisecond>(1500.0);
+    ///
+    /// println!("{}", t1.get_human()); // "45s"
+    /// println!("{}", t2.get_human()); // "2m 30s"
+    /// println!("{}", t3.get_human()); // "1s 500ms"
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the human-readable time representation truncated to milliseconds,
+    /// or an error message if the conversion fails (e.g., for negative durations or overflow).
+    pub fn get_human(&self) -> String {
+        match Duration::try_from(*self) {
+            Ok(duration) => {
+                // Truncate to milliseconds by removing microseconds and nanoseconds
+                let secs = duration.as_secs();
+                let millis = duration.subsec_millis();
+                let truncated_duration = Duration::from_secs(secs) + Duration::from_millis(millis as u64);
+                humantime::format_duration(truncated_duration).to_string()
+            }
+            Err(TryFromError::NegativeDuration) => {
+                // For negative durations, format as negative of the absolute value
+                match Duration::try_from(self.abs()) {
+                    Ok(duration) => {
+                        let secs = duration.as_secs();
+                        let millis = duration.subsec_millis();
+                        let truncated_duration = Duration::from_secs(secs) + Duration::from_millis(millis as u64);
+                        format!("-{}", humantime::format_duration(truncated_duration))
+                    }
+                    Err(_) => "invalid duration".to_string(),
+                }
+            }
+            Err(TryFromError::Overflow) => "duration too large".to_string(),
         }
     }
 }

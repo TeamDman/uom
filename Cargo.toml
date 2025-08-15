@@ -34,18 +34,18 @@ num-bigint = { version = "0.4", optional = true, default-features = false, featu
 num-complex = { version = "0.4", optional = true, default-features = false, features = ["std"] }
 serde = { version = "1.0", optional = true, default-features = false }
 typenum = "1.13"
+humantime = { version = "2.1", optional = true }
+humansize = { version = "2.1", optional = true }
 
 [dev-dependencies]
 approx = "0.5"
 quickcheck = "1.0"
 serde_json = "1.0"
 static_assertions = "1.1"
-humansize = "2.1"
-humantime = "2.1"
 rand = "0.8"
 
 [features]
-default = ["autoconvert", "f32", "f64", "si", "std"]
+default = ["autoconvert", "f32", "f64", "si", "std", "human"]
 autoconvert = []
 usize = ["rational-support"]
 u8 = ["rational-support"]
@@ -71,6 +71,7 @@ f32 = []
 f64 = []
 si = []
 std = ["num-traits/std"]
+human = ["std", "dep:humantime", "dep:humansize"]
 serde = ["dep:serde", "num-rational?/serde", "num-bigint?/serde", "num-complex?/serde"]
 # The try-from feature is deprecated and will be removed in a future release of uom. Functionality
 # previously exposed by the feature is now enabled by default.
@@ -109,3 +110,27 @@ required-features = ["f32", "si"]
 [[example]]
 name = "uom_bytes_eta"
 required-features = ["f64", "si"]
+
+[[example]]
+name = "time_human"
+required-features = ["f64", "si", "human"]
+
+[[example]]
+name = "time_no_human"
+required-features = ["f64", "si"]
+
+[[example]]
+name = "time_precision_demo"
+required-features = ["f64", "si", "human"]
+
+[[example]]
+name = "information_human"
+required-features = ["f64", "si", "human"]
+
+[[example]]
+name = "combined_human"
+required-features = ["f64", "si", "human"]
+
+[[example]]
+name = "information_rate_human"
+required-features = ["f64", "si", "human"]

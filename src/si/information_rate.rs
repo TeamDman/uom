@@ -1,5 +1,8 @@
 //! Information rate (base unit byte per second, s⁻¹).
 
+#[cfg(feature = "human")]
+use humansize;
+
 quantity! {
     /// Information rate (base unit byte per second, s⁻¹).
     quantity: InformationRate; "information rate";
@@ -69,6 +72,93 @@ quantity! {
         @byte_per_second: prefix!(none); "B/s", "byte per second", "bytes per second";
 
         @octet_per_second: prefix!(none); "o/s", "octet per second", "octets per second";
+    }
+}
+
+/// Extension trait for human-readable information rate formatting.
+#[cfg(feature = "human")]
+impl<U, V> InformationRate<U, V>
+where
+    U: crate::si::Units<V> + ?Sized,
+    V: crate::num::Num + crate::Conversion<V> + crate::num::ToPrimitive + Copy,
+    byte_per_second: crate::Conversion<V, T = V::T>,
+{
+    /// Get a human-readable representation of the information rate with decimal prefixes.
+    ///
+    /// This method converts the information rate to bytes per second and then formats 
+    /// it using the `humansize` crate with decimal (SI) prefixes followed by "/s".
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uom::si::f64::InformationRate;
+    /// use uom::si::information_rate::{byte_per_second, kilobyte_per_second, megabyte_per_second};
+    ///
+    /// let r1 = InformationRate::new::<byte_per_second>(1500.0);
+    /// let r2 = InformationRate::new::<kilobyte_per_second>(2.5);
+    /// let r3 = InformationRate::new::<megabyte_per_second>(100.0);
+    ///
+    /// println!("{}", r1.get_human()); // "1.50 kB/s"
+    /// println!("{}", r2.get_human()); // "2.50 kB/s"
+    /// println!("{}", r3.get_human()); // "100 MB/s"
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the human-readable rate representation using decimal prefixes
+    /// with "/s" suffix, or "0 B/s" for zero/negative values.
+    pub fn get_human(&self) -> String {
+        let bytes_per_sec = self.get::<byte_per_second>();
+        match bytes_per_sec.to_u64() {
+            Some(bps) => format!("{}/s", humansize::format_size(bps, humansize::DECIMAL)),
+            None => {
+                // Handle cases where conversion fails (negative, too large, etc.)
+                if bytes_per_sec.to_f64().unwrap_or(0.0) < 0.0 {
+                    "0 B/s".to_string() // humansize doesn't handle negative values well
+                } else {
+                    "rate too large".to_string()
+                }
+            }
+        }
+    }
+
+    /// Get a human-readable representation of the information rate with binary prefixes.
+    ///
+    /// This method converts the information rate to bytes per second and then formats 
+    /// it using the `humansize` crate with binary (IEC) prefixes followed by "/s".
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uom::si::f64::InformationRate;
+    /// use uom::si::information_rate::{byte_per_second, kibibyte_per_second, mebibyte_per_second};
+    ///
+    /// let r1 = InformationRate::new::<byte_per_second>(1536.0);
+    /// let r2 = InformationRate::new::<kibibyte_per_second>(2.5);
+    /// let r3 = InformationRate::new::<mebibyte_per_second>(100.0);
+    ///
+    /// println!("{}", r1.get_human_binary()); // "1.50 KiB/s"
+    /// println!("{}", r2.get_human_binary()); // "2.50 KiB/s"
+    /// println!("{}", r3.get_human_binary()); // "100 MiB/s"
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the human-readable rate representation using binary prefixes
+    /// with "/s" suffix, or "0 B/s" for zero/negative values.
+    pub fn get_human_binary(&self) -> String {
+        let bytes_per_sec = self.get::<byte_per_second>();
+        match bytes_per_sec.to_u64() {
+            Some(bps) => format!("{}/s", humansize::format_size(bps, humansize::BINARY)),
+            None => {
+                // Handle cases where conversion fails (negative, too large, etc.)
+                if bytes_per_sec.to_f64().unwrap_or(0.0) < 0.0 {
+                    "0 B/s".to_string() // humansize doesn't handle negative values well
+                } else {
+                    "rate too large".to_string()
+                }
+            }
+        }
     }
 }
 

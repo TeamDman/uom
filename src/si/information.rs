@@ -1,5 +1,8 @@
 //! Information (dimensionless quantity).
 
+#[cfg(feature = "human")]
+use humansize;
+
 quantity! {
     /// Information (dimensionless quantity).
     quantity: Information; "information";
@@ -76,5 +79,96 @@ quantity! {
         // Base-10. log2(10).
         @hartley: 3.321_928_094_887_363_E0 * prefix!(none) / 8.0; "Hart", "hartley", "hartleys";
         @deciban: 3.321_928_094_887_363_E0 * prefix!(deci) / 8.0; "deciban", "deciban", "decibans";
+    }
+}
+
+/// Extension trait for human-readable information formatting.
+#[cfg(feature = "human")]
+impl<U, V> Information<U, V>
+where
+    U: crate::si::Units<V> + ?Sized,
+    V: crate::num::Num + crate::Conversion<V> + crate::num::ToPrimitive + Copy,
+    byte: crate::Conversion<V, T = V::T>,
+{
+    /// Get a human-readable representation of the information size.
+    ///
+    /// This method converts the information to bytes and then formats it using 
+    /// the `humansize` crate for human-readable output with decimal (SI) prefixes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uom::si::f64::Information;
+    /// use uom::si::information::{byte, kilobyte, megabyte, gigabyte};
+    ///
+    /// let i1 = Information::new::<byte>(1024.0);
+    /// let i2 = Information::new::<kilobyte>(5.5);
+    /// let i3 = Information::new::<megabyte>(250.0);
+    /// let i4 = Information::new::<gigabyte>(1.5);
+    ///
+    /// println!("{}", i1.get_human()); // "1.02 KB"
+    /// println!("{}", i2.get_human()); // "5.50 KB"
+    /// println!("{}", i3.get_human()); // "250 MB"
+    /// println!("{}", i4.get_human()); // "1.50 GB"
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the human-readable size representation using decimal prefixes,
+    /// or "0 B" for zero/negative values.
+    pub fn get_human(&self) -> String {
+        let bytes = self.get::<byte>();
+        match bytes.to_u64() {
+            Some(byte_count) => humansize::format_size(byte_count, humansize::DECIMAL),
+            None => {
+                // Handle cases where conversion fails (negative, too large, etc.)
+                if bytes.to_f64().unwrap_or(0.0) < 0.0 {
+                    "0 B".to_string() // humansize doesn't handle negative values well
+                } else {
+                    "size too large".to_string()
+                }
+            }
+        }
+    }
+
+    /// Get a human-readable representation of the information size using binary prefixes.
+    ///
+    /// This method converts the information to bytes and then formats it using 
+    /// the `humansize` crate for human-readable output with binary (IEC) prefixes.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use uom::si::f64::Information;
+    /// use uom::si::information::{byte, kibibyte, mebibyte, gibibyte};
+    ///
+    /// let i1 = Information::new::<byte>(1024.0);
+    /// let i2 = Information::new::<kibibyte>(5.5);
+    /// let i3 = Information::new::<mebibyte>(250.0);
+    /// let i4 = Information::new::<gibibyte>(1.5);
+    ///
+    /// println!("{}", i1.get_human_binary()); // "1.00 KiB"
+    /// println!("{}", i2.get_human_binary()); // "5.50 KiB"
+    /// println!("{}", i3.get_human_binary()); // "250 MiB"
+    /// println!("{}", i4.get_human_binary()); // "1.50 GiB"
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `String` containing the human-readable size representation using binary prefixes,
+    /// or "0 B" for zero/negative values.
+    pub fn get_human_binary(&self) -> String {
+        let bytes = self.get::<byte>();
+        match bytes.to_u64() {
+            Some(byte_count) => humansize::format_size(byte_count, humansize::BINARY),
+            None => {
+                // Handle cases where conversion fails (negative, too large, etc.)
+                if bytes.to_f64().unwrap_or(0.0) < 0.0 {
+                    "0 B".to_string() // humansize doesn't handle negative values well
+                } else {
+                    "size too large".to_string()
+                }
+            }
+        }
     }
 }
