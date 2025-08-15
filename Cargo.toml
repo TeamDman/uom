@@ -40,6 +40,9 @@ approx = "0.5"
 quickcheck = "1.0"
 serde_json = "1.0"
 static_assertions = "1.1"
+humansize = "2.1"
+humantime = "2.1"
+rand = "0.8"
 
 [features]
 default = ["autoconvert", "f32", "f64", "si", "std"]
@@ -94,3 +97,15 @@ required-features = ["f32", "si"]
 [[example]]
 name = "unit"
 required-features = ["f32", "si"]
+
+[[example]]
+name = "base_unit"
+required-features = ["u64", "si"]
+
+[[example]]
+name = "uom_bytes"
+required-features = ["f32", "si"]
+
+[[example]]
+name = "uom_bytes_eta"
+required-features = ["f64", "si"]
